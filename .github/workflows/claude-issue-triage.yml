@@ -1,0 +1,46 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  triage:
+    if: github.event.sender.type != 'Bot'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    concurrency:
+      group: issue-triage-${{ github.event.issue.number }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Triage issue with Claude
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Triage GitHub issue #${{ github.event.issue.number }} in ${{ github.repository }}.
+
+            1. Read the issue title and body (gh issue view ${{ github.event.issue.number }}).
+            2. Investigate the repository code related to the issue (Read, Grep, Glob).
+            3. Run `gh label list` and apply only labels that already exist, using
+               `gh issue edit ${{ github.event.issue.number }} --add-label "<label1>,<label2>"`.
+               Do not create new labels. Do not remove existing labels.
+            4. Write ONE diagnosis comment in Spanish with: probable cause, related files
+               (file:line), severity, suggested next steps, and missing information if any.
+            5. Before posting, check existing comments for the marker `<!-- claude-triage -->`
+               (gh api repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments).
+               If found, update that comment with `gh api -X PATCH`; otherwise create it with
+               `gh issue comment`. Always include the marker `<!-- claude-triage -->` at the top
+               of the comment body. Never post a second diagnosis.
+          claude_args: |
+            --allowed-tools "Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh label list:*),Bash(gh api:*),Read,Grep,Glob"
