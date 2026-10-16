@@ -339,3 +339,15 @@ kbd {
   color: #888;
   cursor: default;
 }
+
+/* ---- Selector de skin ---- */
+#skin-select {
+  width: 100%;
+  padding: 4px 6px;
+  background: #22223a;
+  color: #aaa;
+  border: 1px solid #3a3a5a;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+}
